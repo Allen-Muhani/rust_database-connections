@@ -1,6 +1,5 @@
 use mongodb::{
     bson::{doc, Document},
-    results::InsertOneResult,
     Client, Collection,
 };
 
@@ -9,12 +8,12 @@ async fn main() -> mongodb::error::Result<()> {
     let users_collection = "users";
     let filter = doc! {"name": "Allen Muhani"};
 
-    let user_id = create_document(&users_collection, filter.clone())
+    let new_user = create_document(&users_collection, &filter)
         .await
         .unwrap();
 
-    print!("Inserted user with a user:\n{:#?}", user_id);
-    let user = find_one(&users_collection, doc! {"_id": user_id.inserted_id}).await?;
+    print!("Inserted user with a user:\n{:#?}", new_user);
+    let user = find_one(&users_collection, doc! {"_id": new_user.get("id")}).await?;
 
     print!("Found a user:\n{:#?}", user);
 
@@ -29,12 +28,14 @@ async fn main() -> mongodb::error::Result<()> {
  */
 async fn create_document(
     collection_name: &str,
-    entry: Document,
-) -> mongodb::error::Result<InsertOneResult> {
+    entry: &Document,
+) -> mongodb::error::Result<Document> {
     let collection: Collection<Document> = get_collection(&collection_name).await?;
     let data = collection.insert_one(entry).await?;
+    let mut rst = entry.clone();
+    rst.insert("id", data.inserted_id);
 
-    Ok(data)
+    Ok(rst)
 }
 /**
  * Finds one document from a collection.
